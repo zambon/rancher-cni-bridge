@@ -18,8 +18,10 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"runtime"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/containernetworking/cni/pkg/ip"
 	"github.com/containernetworking/cni/pkg/ipam"
 	"github.com/containernetworking/cni/pkg/ns"
@@ -44,6 +46,15 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 
+	if n.LogToFile != "" {
+		f, err := os.OpenFile(n.LogToFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err == nil && f != nil {
+			logrus.SetLevel(logrus.DebugLevel)
+			logrus.SetOutput(f)
+			defer f.Close()
+		}
+	}
+
 	if n.IsDefaultGW {
 		n.IsGW = true
 	}
@@ -65,8 +76,13 @@ func cmdAdd(args *skel.CmdArgs) error {
 		linkMTU = n.MTU
 	}
 
-	if err = setupVeth(netns, br, args.IfName, linkMTU, n.HairpinMode); err != nil {
-		return err
+	// Check if the container interface already exists
+	if !checkIfContainerInterfaceExists(args) {
+		if err = setupVeth(netns, br, args.IfName, linkMTU, n.HairpinMode); err != nil {
+			return err
+		}
+	} else {
+		logrus.Infof("container already has interface: %v, no worries", args.IfName)
 	}
 
 	// run the IPAM plugin and get back the config to apply
@@ -111,7 +127,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 			// TODO: IPV6
 		}
 
-		return ipam.ConfigureIface(args.IfName, result)
+		return configureInterface(args.IfName, result)
 	}); err != nil {
 		return err
 	}
@@ -147,6 +163,15 @@ func cmdDel(args *skel.CmdArgs) error {
 	n, err := loadNetConf(args.StdinData)
 	if err != nil {
 		return err
+	}
+
+	if n.LogToFile != "" {
+		f, err := os.OpenFile(n.LogToFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err == nil && f != nil {
+			logrus.SetLevel(logrus.DebugLevel)
+			logrus.SetOutput(f)
+			defer f.Close()
+		}
 	}
 
 	if err := ipam.ExecDel(n.IPAM.Type, args.StdinData); err != nil {

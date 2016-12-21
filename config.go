@@ -13,6 +13,7 @@ type NetConf struct {
 	BrName          string `json:"bridge"`
 	BrSubnet        string `json:"bridgeSubnet"`
 	BrIP            string `json:"bridgeIP"`
+	LogToFile       string `json:"logToFile"`
 	IsGW            bool   `json:"isGateway"`
 	IsDefaultGW     bool   `json:"isDefaultGateway"`
 	IPMasq          bool   `json:"ipMasq"`
