@@ -20,6 +20,7 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"strconv"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/containernetworking/cni/pkg/ip"
@@ -28,6 +29,7 @@ import (
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/utils"
+	"github.com/containernetworking/cni/pkg/version"
 	"github.com/vishvananda/netlink"
 )
 
@@ -59,6 +61,11 @@ func cmdAdd(args *skel.CmdArgs) error {
 		n.IsGW = true
 	}
 
+	nArgs, err := loadNetArgs(args.Args)
+	if err != nil {
+		return err
+	}
+
 	br, err := setupBridge(n)
 	if err != nil {
 		return err
@@ -70,15 +77,9 @@ func cmdAdd(args *skel.CmdArgs) error {
 	}
 	defer netns.Close()
 
-	linkMTU := n.MTU - n.LinkMTUOverhead
-	// If user error, just use the bridge MTU
-	if linkMTU < 0 {
-		linkMTU = n.MTU
-	}
-
 	// Check if the container interface already exists
 	if !checkIfContainerInterfaceExists(args) {
-		if err = setupVeth(netns, br, args.IfName, linkMTU, n.HairpinMode); err != nil {
+		if err = setupVeth(netns, br, args.IfName, n.MTU, n.HairpinMode); err != nil {
 			return err
 		}
 	} else {
@@ -101,6 +102,35 @@ func cmdAdd(args *skel.CmdArgs) error {
 	}
 
 	if err := netns.Do(func(_ ns.NetNS) error {
+		overHeadToUse := 0
+		if nArgs.LinkMTUOverhead != "" {
+			overHeadToUse, err = strconv.Atoi(string(nArgs.LinkMTUOverhead))
+			if err != nil {
+				logrus.Errorf("Error converting LinkMTUOverhead: %v to int", nArgs.LinkMTUOverhead)
+				overHeadToUse = n.LinkMTUOverhead
+			}
+		} else {
+			overHeadToUse = n.LinkMTUOverhead
+		}
+
+		linkMTU := n.MTU - overHeadToUse
+		logrus.Debugf("overHeadToUse: %v, linkMTU: %v", overHeadToUse, linkMTU)
+
+		if linkMTU > 0 {
+			logrus.Debugf("setting %v linkMTU: %v", args.IfName, linkMTU)
+			cIntf, err := netlink.LinkByName(args.IfName)
+			if err != nil {
+				err = fmt.Errorf("failed to lookup %q: %v", args.IfName, err)
+				return err
+			}
+
+			err = netlink.LinkSetMTU(cIntf, linkMTU)
+			if err != nil {
+				err = fmt.Errorf("failed to set link MTU: %v", err)
+				return err
+			}
+		}
+
 		// set the default gateway if requested
 		if n.IsDefaultGW {
 			_, defaultNet, err := net.ParseCIDR("0.0.0.0/0")
@@ -204,5 +234,5 @@ func cmdDel(args *skel.CmdArgs) error {
 }
 
 func main() {
-	skel.PluginMain(cmdAdd, cmdDel)
+	skel.PluginMain(cmdAdd, cmdDel, version.PluginSupports("0.1.0"))
 }
