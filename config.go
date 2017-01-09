@@ -7,6 +7,13 @@ import (
 	"github.com/containernetworking/cni/pkg/types"
 )
 
+// NetArgs holds the args passed to the network plugin
+type NetArgs struct {
+	types.CommonArgs
+	RancherContainerUUID types.UnmarshallableString
+	LinkMTUOverhead      types.UnmarshallableString
+}
+
 // NetConf is used to hold the config of the network
 type NetConf struct {
 	types.NetConf
@@ -30,4 +37,13 @@ func loadNetConf(bytes []byte) (*NetConf, error) {
 		return nil, fmt.Errorf("failed to load netconf: %v", err)
 	}
 	return n, nil
+}
+
+func loadNetArgs(args string) (*NetArgs, error) {
+	nArgs := &NetArgs{}
+	if err := types.LoadArgs(args, nArgs); err != nil {
+		return nil, fmt.Errorf("failed to parse args %s: %v", args, err)
+	}
+
+	return nArgs, nil
 }
