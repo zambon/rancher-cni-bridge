@@ -275,3 +275,21 @@ func checkIfContainerInterfaceExists(args *skel.CmdArgs) bool {
 	}
 	return false
 }
+
+func setInterfaceMacAddress(ifName, mac string) error {
+	link, err := netlink.LinkByName(ifName)
+	if err != nil {
+		return fmt.Errorf("failed to lookup %q: %v", ifName, err)
+	}
+
+	hwaddr, err := net.ParseMAC(mac)
+	if err != nil {
+		return fmt.Errorf("failed to parse MAC address: %v", err)
+	}
+	err = netlink.LinkSetHardwareAddr(link, hwaddr)
+	if err != nil {
+		return fmt.Errorf("failed to set hw address of interface: %v", err)
+	}
+
+	return nil
+}
