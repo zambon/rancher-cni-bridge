@@ -110,7 +110,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 			}
 			logrus.Debugf("have set the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
 		} else {
-			logrus.Warnf("no MAC address specified to set for container: %v", args.ContainerID)
+			logrus.Infof("no MAC address specified to set for container: %v", args.ContainerID)
 		}
 
 		overHeadToUse := 0
