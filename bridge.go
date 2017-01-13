@@ -102,6 +102,17 @@ func cmdAdd(args *skel.CmdArgs) error {
 	}
 
 	if err := netns.Do(func(_ ns.NetNS) error {
+		if nArgs.MACAddress != "" {
+			err := setInterfaceMacAddress(args.IfName, string(nArgs.MACAddress))
+			if err != nil {
+				logrus.Errorf("error setting MAC address: %v", err)
+				return fmt.Errorf("couldn't set the MAC Address of the interface: %v", err)
+			}
+			logrus.Debugf("have set the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
+		} else {
+			logrus.Infof("no MAC address specified to set for container: %v", args.ContainerID)
+		}
+
 		overHeadToUse := 0
 		if nArgs.LinkMTUOverhead != "" {
 			overHeadToUse, err = strconv.Atoi(string(nArgs.LinkMTUOverhead))

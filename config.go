@@ -12,6 +12,7 @@ type NetArgs struct {
 	types.CommonArgs
 	RancherContainerUUID types.UnmarshallableString
 	LinkMTUOverhead      types.UnmarshallableString
+	MACAddress           types.UnmarshallableString
 }
 
 // NetConf is used to hold the config of the network
