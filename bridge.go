@@ -100,8 +100,16 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return errors.New("IPAM plugin returned missing IPv4 config")
 	}
 
-	if result.IP4.Gateway == nil && n.IsGW {
-		result.IP4.Gateway = calcGatewayIP(&result.IP4.IP)
+	if n.IsGW {
+		if n.UseBridgeIPAsGW {
+			bridgeIP, err := getBridgeIP(br)
+			if err != nil {
+				return err
+			}
+			result.IP4.Gateway = bridgeIP
+		} else if result.IP4.Gateway == nil {
+			result.IP4.Gateway = calcGatewayIP(&result.IP4.IP)
+		}
 	}
 
 	if err := netns.Do(func(_ ns.NetNS) error {
