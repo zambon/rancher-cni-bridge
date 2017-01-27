@@ -239,7 +239,7 @@ func configureInterface(ifName string, res *types.Result) error {
 	addr := &netlink.Addr{IPNet: &res.IP4.IP, Label: ""}
 	if err = netlink.AddrAdd(link, addr); err != nil {
 		if err.Error() == "file exists" {
-			logrus.Infof("Interface %q already has IP address: %v, no worries", ifName, addr)
+			logrus.Infof("rancher-cni-bridge: Interface %q already has IP address: %v, no worries", ifName, addr)
 		} else {
 			return fmt.Errorf("failed to add IP addr to %q: %v", ifName, err)
 		}
