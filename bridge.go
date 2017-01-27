@@ -48,10 +48,13 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 
+	if n.IsDebugLevel == "true" {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
 	if n.LogToFile != "" {
 		f, err := os.OpenFile(n.LogToFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err == nil && f != nil {
-			logrus.SetLevel(logrus.DebugLevel)
 			logrus.SetOutput(f)
 			defer f.Close()
 		}
@@ -83,7 +86,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 			return err
 		}
 	} else {
-		logrus.Infof("container already has interface: %v, no worries", args.IfName)
+		logrus.Infof("rancher-cni-bridge: container already has interface: %v, no worries", args.IfName)
 	}
 
 	// run the IPAM plugin and get back the config to apply
@@ -108,9 +111,9 @@ func cmdAdd(args *skel.CmdArgs) error {
 				logrus.Errorf("error setting MAC address: %v", err)
 				return fmt.Errorf("couldn't set the MAC Address of the interface: %v", err)
 			}
-			logrus.Debugf("have set the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
+			logrus.Debugf("rancher-cni-bridge: have set the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
 		} else {
-			logrus.Infof("no MAC address specified to set for container: %v", args.ContainerID)
+			logrus.Infof("rancher-cni-bridge: no MAC address specified to set for container: %v", args.ContainerID)
 		}
 
 		overHeadToUse := 0
@@ -125,10 +128,10 @@ func cmdAdd(args *skel.CmdArgs) error {
 		}
 
 		linkMTU := n.MTU - overHeadToUse
-		logrus.Debugf("overHeadToUse: %v, linkMTU: %v", overHeadToUse, linkMTU)
+		logrus.Debugf("rancher-cni-bridge: overHeadToUse: %v, linkMTU: %v", overHeadToUse, linkMTU)
 
 		if linkMTU > 0 {
-			logrus.Debugf("setting %v linkMTU: %v", args.IfName, linkMTU)
+			logrus.Debugf("rancher-cni-bridge: setting %v linkMTU: %v", args.IfName, linkMTU)
 			cIntf, err := netlink.LinkByName(args.IfName)
 			if err != nil {
 				err = fmt.Errorf("failed to lookup %q: %v", args.IfName, err)
@@ -206,10 +209,13 @@ func cmdDel(args *skel.CmdArgs) error {
 		return err
 	}
 
+	if n.IsDebugLevel == "true" {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
 	if n.LogToFile != "" {
 		f, err := os.OpenFile(n.LogToFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err == nil && f != nil {
-			logrus.SetLevel(logrus.DebugLevel)
 			logrus.SetOutput(f)
 			defer f.Close()
 		}
