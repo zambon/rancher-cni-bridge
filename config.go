@@ -21,6 +21,7 @@ type NetConf struct {
 	BrName          string `json:"bridge"`
 	BrSubnet        string `json:"bridgeSubnet"`
 	BrIP            string `json:"bridgeIP"`
+	UseBridgeIPAsGW bool   `json:"useBridgeIPAsGateway"`
 	LogToFile       string `json:"logToFile"`
 	IsDebugLevel    string `json:"isDebugLevel"`
 	IsGW            bool   `json:"isGateway"`
