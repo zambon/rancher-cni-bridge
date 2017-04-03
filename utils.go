@@ -11,6 +11,8 @@ import (
 	"github.com/containernetworking/cni/pkg/ns"
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
+	"github.com/rancher/rancher-cni-bridge/macfinder"
+	"github.com/rancher/rancher-cni-bridge/macfinder/metadata"
 	"github.com/vishvananda/netlink"
 )
 
@@ -302,4 +304,18 @@ func setInterfaceMacAddress(ifName, mac string) error {
 	}
 
 	return nil
+}
+
+func findMACAddressForContainer(containerID, rancherID string) (string, error) {
+	var mf macfinder.MACFinder
+	mf, err := metadata.NewMACFinderFromMetadata()
+	if err != nil {
+		return "", err
+	}
+	macString := mf.GetMACAddress(containerID, rancherID)
+	if macString == "" {
+		return "", fmt.Errorf("No MAC address found")
+	}
+
+	return macString, nil
 }

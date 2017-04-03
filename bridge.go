@@ -90,13 +90,24 @@ func cmdAdd(args *skel.CmdArgs) error {
 	}
 
 	if err := netns.Do(func(_ ns.NetNS) error {
+		macAddressToSet := ""
 		if nArgs.MACAddress != "" {
-			err := setInterfaceMacAddress(args.IfName, string(nArgs.MACAddress))
-			if err != nil {
-				logrus.Errorf("error setting MAC address: %v", err)
-				return fmt.Errorf("Couldn't set the MAC Address of the interface: %v", err)
+			logrus.Debugf("rancher-cni-bridge: setting the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
+			macAddressToSet = string(nArgs.MACAddress)
+		} else {
+			m, err := findMACAddressForContainer(args.ContainerID, string(nArgs.RancherContainerUUID))
+			if err == nil {
+				macAddressToSet = m
 			}
-			logrus.Debugf("rancher-cni-bridge: have set the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
+			logrus.Debugf("rancher-cni-bridge: found the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
+		}
+
+		if macAddressToSet != "" {
+			err := setInterfaceMacAddress(args.IfName, macAddressToSet)
+			if err != nil {
+				logrus.Errorf("rancher-cni-bridge: error setting MAC address: %v", err)
+				return fmt.Errorf("couldn't set the MAC Address of the interface: %v", err)
+			}
 		} else {
 			logrus.Infof("rancher-cni-bridge: no MAC address specified to set for container: %v", args.ContainerID)
 		}
@@ -133,7 +144,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 		if nArgs.LinkMTUOverhead != "" {
 			overHeadToUse, err = strconv.Atoi(string(nArgs.LinkMTUOverhead))
 			if err != nil {
-				logrus.Errorf("Error converting LinkMTUOverhead: %v to int", nArgs.LinkMTUOverhead)
+				logrus.Errorf("rancher-cni-bridge: Error converting LinkMTUOverhead: %v to int", nArgs.LinkMTUOverhead)
 				overHeadToUse = n.LinkMTUOverhead
 			}
 		} else {
