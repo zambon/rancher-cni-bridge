@@ -20,10 +20,7 @@ type MACFinderFromMetadata struct {
 
 // NewMACFinderFromMetadata returns a new instance of the MACFinderFromMetadata
 func NewMACFinderFromMetadata() (*MACFinderFromMetadata, error) {
-	m, err := metadata.NewClientAndWait(metadataURL)
-	if err != nil {
-		return nil, err
-	}
+	m := metadata.NewClient(metadataURL)
 	return &MACFinderFromMetadata{m}, nil
 }
 
