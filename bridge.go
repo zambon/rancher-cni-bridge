@@ -94,7 +94,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 		logrus.Debugf("rancher-cni-bridge: setting the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
 		macAddressToSet = string(nArgs.MACAddress)
 	} else {
-		macAddressToSet, err := findMACAddressForContainer(args.ContainerID, string(nArgs.RancherContainerUUID))
+		macAddressToSet, err = findMACAddressForContainer(args.ContainerID, string(nArgs.RancherContainerUUID))
 		if err != nil {
 			logrus.Errorf("rancher-cni-bridge: err=%v", err)
 			return err
