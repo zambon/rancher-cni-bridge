@@ -89,28 +89,27 @@ func cmdAdd(args *skel.CmdArgs) error {
 		logrus.Infof("rancher-cni-bridge: container already has interface: %v, no worries", args.IfName)
 	}
 
-	if err := netns.Do(func(_ ns.NetNS) error {
-		macAddressToSet := ""
-		if nArgs.MACAddress != "" {
-			logrus.Debugf("rancher-cni-bridge: setting the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
-			macAddressToSet = string(nArgs.MACAddress)
-		} else {
-			m, err := findMACAddressForContainer(args.ContainerID, string(nArgs.RancherContainerUUID))
-			if err == nil {
-				macAddressToSet = m
-			}
-			logrus.Debugf("rancher-cni-bridge: found the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
+	macAddressToSet := ""
+	if nArgs.MACAddress != "" {
+		logrus.Debugf("rancher-cni-bridge: setting the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
+		macAddressToSet = string(nArgs.MACAddress)
+	} else {
+		m, err := findMACAddressForContainer(args.ContainerID, string(nArgs.RancherContainerUUID))
+		if err == nil {
+			macAddressToSet = m
 		}
+		logrus.Debugf("rancher-cni-bridge: found the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
+	}
 
-		if macAddressToSet != "" {
-			err := setInterfaceMacAddress(args.IfName, macAddressToSet)
-			if err != nil {
-				logrus.Errorf("rancher-cni-bridge: error setting MAC address: %v", err)
-				return fmt.Errorf("couldn't set the MAC Address of the interface: %v", err)
-			}
-		} else {
+	if err := netns.Do(func(_ ns.NetNS) error {
+		if macAddressToSet == "" {
 			logrus.Errorf("rancher-cni-bridge: no MAC address specified to set for container: %v", args.ContainerID)
 			return fmt.Errorf("couldn't find MAC address for container")
+		}
+		err := setInterfaceMacAddress(args.IfName, macAddressToSet)
+		if err != nil {
+			logrus.Errorf("rancher-cni-bridge: error setting MAC address: %v", err)
+			return fmt.Errorf("couldn't set the MAC Address of the interface: %v", err)
 		}
 		return nil
 	}); err != nil {
