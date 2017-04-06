@@ -94,18 +94,15 @@ func cmdAdd(args *skel.CmdArgs) error {
 		logrus.Debugf("rancher-cni-bridge: setting the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
 		macAddressToSet = string(nArgs.MACAddress)
 	} else {
-		m, err := findMACAddressForContainer(args.ContainerID, string(nArgs.RancherContainerUUID))
-		if err == nil {
-			macAddressToSet = m
+		macAddressToSet, err := findMACAddressForContainer(args.ContainerID, string(nArgs.RancherContainerUUID))
+		if err != nil {
+			logrus.Errorf("rancher-cni-bridge: err=%v", err)
+			return err
 		}
-		logrus.Debugf("rancher-cni-bridge: found the %v interface %v MAC address: %v", args.ContainerID, args.IfName, nArgs.MACAddress)
+		logrus.Debugf("rancher-cni-bridge: found the %v interface %v MAC address: %v", args.ContainerID, args.IfName, macAddressToSet)
 	}
 
 	if err := netns.Do(func(_ ns.NetNS) error {
-		if macAddressToSet == "" {
-			logrus.Errorf("rancher-cni-bridge: no MAC address specified to set for container: %v", args.ContainerID)
-			return fmt.Errorf("couldn't find MAC address for container")
-		}
 		err := setInterfaceMacAddress(args.IfName, macAddressToSet)
 		if err != nil {
 			logrus.Errorf("rancher-cni-bridge: error setting MAC address: %v", err)
