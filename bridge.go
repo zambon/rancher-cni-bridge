@@ -82,7 +82,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 
 	// Check if the container interface already exists
 	if !checkIfContainerInterfaceExists(args) {
-		if err = setupVeth(netns, br, args.IfName, n.MTU, n.HairpinMode); err != nil {
+		if err = setupVeth(netns, br, args.ContainerID, args.IfName, n.MTU, n.HairpinMode); err != nil {
 			return err
 		}
 	} else {
