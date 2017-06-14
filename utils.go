@@ -16,6 +16,101 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
+func makeVethPair(name, peer string, mtu int) (netlink.Link, error) {
+	veth := &netlink.Veth{
+		LinkAttrs: netlink.LinkAttrs{
+			Name:  name,
+			Flags: net.FlagUp,
+			MTU:   mtu,
+		},
+		PeerName: peer,
+	}
+	if err := netlink.LinkAdd(veth); err != nil {
+		return nil, err
+	}
+
+	return veth, nil
+}
+
+func peerExists(name string) bool {
+	if _, err := netlink.LinkByName(name); err != nil {
+		return false
+	}
+	return true
+}
+
+func makeVeth(name, peerName string, mtu int) (veth netlink.Link, err error) {
+	veth, err = makeVethPair(name, peerName, mtu)
+	switch {
+	case err == nil:
+		return
+
+	case os.IsExist(err):
+		if peerExists(peerName) {
+			err = fmt.Errorf("container veth name provided (%v) already exists", name)
+			return
+		}
+	default:
+		err = fmt.Errorf("failed to make veth pair: %v", err)
+		return
+	}
+
+	// should really never be hit
+	err = fmt.Errorf("failed to find a unique veth name")
+	return
+}
+
+// Only 15 characters are allowed (IFNAMSIZ)
+func getHostVethName(containerID string) (string, error) {
+	if containerID == "" {
+		return "", fmt.Errorf("no containerID specified")
+	}
+
+	return fmt.Sprintf("veth%v", containerID[:11]), nil
+}
+
+// SetupVeth is similar to the one provided by upstream except that
+// you can pass your own host side veth's name
+func SetupVeth(containerID, contVethName string, mtu int, hostNS ns.NetNS) (hostVeth, contVeth netlink.Link, err error) {
+	hostVethName, err := getHostVethName(containerID)
+	if err != nil {
+		return
+	}
+
+	contVeth, err = makeVeth(contVethName, hostVethName, mtu)
+	if err != nil {
+		return
+	}
+
+	if err = netlink.LinkSetUp(contVeth); err != nil {
+		err = fmt.Errorf("failed to set %q up: %v", contVethName, err)
+		return
+	}
+
+	hostVeth, err = netlink.LinkByName(hostVethName)
+	if err != nil {
+		err = fmt.Errorf("failed to lookup %q: %v", hostVethName, err)
+		return
+	}
+
+	if err = netlink.LinkSetNsFd(hostVeth, int(hostNS.Fd())); err != nil {
+		err = fmt.Errorf("failed to move veth to host netns: %v", err)
+		return
+	}
+
+	err = hostNS.Do(func(_ ns.NetNS) error {
+		hostVeth, err = netlink.LinkByName(hostVethName)
+		if err != nil {
+			return fmt.Errorf("failed to lookup %q in %q: %v", hostVethName, hostNS.Path(), err)
+		}
+
+		if err = netlink.LinkSetUp(hostVeth); err != nil {
+			return fmt.Errorf("failed to set %q up: %v", hostVethName, err)
+		}
+		return nil
+	})
+	return
+}
 func getBridgeIP(br *netlink.Bridge) (net.IP, error) {
 	addrs, err := netlink.AddrList(br, syscall.AF_INET)
 	if err != nil && err != syscall.ENOENT {
@@ -101,12 +196,12 @@ func ensureBridge(brName string, mtu int) (*netlink.Bridge, error) {
 	return br, nil
 }
 
-func setupVeth(netns ns.NetNS, br *netlink.Bridge, ifName string, mtu int, hairpinMode bool) error {
+func setupVeth(netns ns.NetNS, br *netlink.Bridge, containerID, ifName string, mtu int, hairpinMode bool) error {
 	var hostVethName string
 
 	err := netns.Do(func(hostNS ns.NetNS) error {
 		// create the veth pair in the container and move host end into host netns
-		hostVeth, _, err := ip.SetupVeth(ifName, mtu, hostNS)
+		hostVeth, _, err := SetupVeth(containerID, ifName, mtu, hostNS)
 		if err != nil {
 			return err
 		}
