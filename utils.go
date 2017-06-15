@@ -66,7 +66,7 @@ func getHostVethName(containerID string) (string, error) {
 		return "", fmt.Errorf("no containerID specified")
 	}
 
-	return fmt.Sprintf("veth%v", containerID[:11]), nil
+	return fmt.Sprintf("vethr%v", containerID[:10]), nil
 }
 
 // SetupVeth is similar to the one provided by upstream except that
