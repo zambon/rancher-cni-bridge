@@ -30,6 +30,7 @@ type NetConf struct {
 	MTU             int    `json:"mtu"`
 	LinkMTUOverhead int    `json:"linkMTUOverhead"`
 	HairpinMode     bool   `json:"hairpinMode"`
+	PromiscMode     bool   `json:"promiscMode"`
 }
 
 func loadNetConf(bytes []byte) (*NetConf, error) {
