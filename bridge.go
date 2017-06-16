@@ -64,6 +64,10 @@ func cmdAdd(args *skel.CmdArgs) error {
 		n.IsGW = true
 	}
 
+	if n.HairpinMode && n.PromiscMode {
+		return fmt.Errorf("cannot set hairpin mode and promiscous mode at the same time")
+	}
+
 	nArgs, err := loadNetArgs(args.Args)
 	if err != nil {
 		return err

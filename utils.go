@@ -62,11 +62,12 @@ func makeVeth(name, peerName string, mtu int) (veth netlink.Link, err error) {
 
 // Only 15 characters are allowed (IFNAMSIZ)
 func getHostVethName(containerID string) (string, error) {
-	if containerID == "" {
-		return "", fmt.Errorf("no containerID specified")
+	containerIDPrefixLength := 10
+	if containerID == "" || len(containerID) < containerIDPrefixLength {
+		return "", fmt.Errorf("no or invalid containerID specified")
 	}
 
-	return fmt.Sprintf("vethr%v", containerID[:10]), nil
+	return fmt.Sprintf("vethr%v", containerID[:containerIDPrefixLength]), nil
 }
 
 // SetupVeth is similar to the one provided by upstream except that
@@ -164,7 +165,7 @@ func bridgeByName(name string) (*netlink.Bridge, error) {
 	return br, nil
 }
 
-func ensureBridge(brName string, mtu int) (*netlink.Bridge, error) {
+func ensureBridge(brName string, mtu int, promiscMode bool) (*netlink.Bridge, error) {
 	br := &netlink.Bridge{
 		LinkAttrs: netlink.LinkAttrs{
 			Name: brName,
@@ -186,6 +187,13 @@ func ensureBridge(brName string, mtu int) (*netlink.Bridge, error) {
 		br, err = bridgeByName(brName)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	if promiscMode {
+		logrus.Debugf("rancher-cni-bridge: enabling promiscMode")
+		if err := netlink.SetPromiscOn(br); err != nil {
+			return nil, fmt.Errorf("could not set promiscuous mode on %q: %v", brName, err)
 		}
 	}
 
@@ -314,7 +322,7 @@ func setBridgeIP(bridgeName, bridgeIP, bridgeSubnet string) error {
 
 func setupBridge(n *NetConf) (*netlink.Bridge, error) {
 	// create bridge if necessary
-	br, err := ensureBridge(n.BrName, n.MTU)
+	br, err := ensureBridge(n.BrName, n.MTU, n.PromiscMode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bridge %q: %v", n.BrName, err)
 	}
