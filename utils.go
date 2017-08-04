@@ -78,6 +78,25 @@ func SetupVeth(containerID, contVethName string, mtu int, hostNS ns.NetNS) (host
 		return
 	}
 
+	// To make sure there is no dangling veth, lookup the veth
+	// on host side and delete if found
+	err = hostNS.Do(func(_ ns.NetNS) error {
+		hVeth, e := netlink.LinkByName(hostVethName)
+		if e != nil {
+			logrus.Debugf("rancher-cni-bridge: no dangling veth found on host for %v", hostVethName)
+			return nil
+		}
+
+		if e = netlink.LinkDel(hVeth); e != nil {
+			return fmt.Errorf("failed to delete dangling veth %q on host: %v", hostVethName, e)
+		}
+		logrus.Infof("rancher-cni-bridge: found and deleted dangling veth on host: %v", hostVethName)
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
 	contVeth, err = makeVeth(contVethName, hostVethName, mtu)
 	if err != nil {
 		return
