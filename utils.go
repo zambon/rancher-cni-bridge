@@ -430,7 +430,8 @@ func setInterfaceMacAddress(ifName, mac string) error {
 
 func findMACAddressForContainer(containerID, rancherID string) (string, error) {
 	var mf macfinder.MACFinder
-	mf, err := metadata.NewMACFinderFromMetadata()
+	metadataAddress := os.Getenv("RANCHER_METADATA_ADDRESS")
+	mf, err := metadata.NewMACFinderFromMetadata(metadataAddress)
 	if err != nil {
 		return "", err
 	}

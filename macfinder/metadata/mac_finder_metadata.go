@@ -1,15 +1,20 @@
 package metadata
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/rancher/go-rancher-metadata/metadata"
-	"time"
 )
 
 const (
-	metadataURL         = "http://rancher-metadata/2015-12-19"
+	metadataURLTemplate = "http://%v/2015-12-19"
 	multiplierForTwoMin = 240
 	emptyMACAddress     = ""
+
+	// DefaultMetadataAddress specifies the default value to use if nothing is specified
+	DefaultMetadataAddress = "169.254.169.250"
 )
 
 // MACFinderFromMetadata is used to hold information related to
@@ -19,7 +24,11 @@ type MACFinderFromMetadata struct {
 }
 
 // NewMACFinderFromMetadata returns a new instance of the MACFinderFromMetadata
-func NewMACFinderFromMetadata() (*MACFinderFromMetadata, error) {
+func NewMACFinderFromMetadata(metadataAddress string) (*MACFinderFromMetadata, error) {
+	if metadataAddress == "" {
+		metadataAddress = DefaultMetadataAddress
+	}
+	metadataURL := fmt.Sprintf(metadataURLTemplate, metadataAddress)
 	m := metadata.NewClient(metadataURL)
 	return &MACFinderFromMetadata{m}, nil
 }
