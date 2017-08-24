@@ -10,8 +10,9 @@ RUN apt-get -q update && \
     rm -rf /var/lib/apt/lists/* && \
     rm -f /bin/sh && ln -s /bin/bash /bin/sh
 
-ENV GOLANG_ARCH_amd64=amd64 GOLANG_ARCH_arm=armv7l GOLANG_ARCH=GOLANG_ARCH_${ARCH} \
-    GOPATH=/go PATH=/go/bin:/usr/local/go/bin:${PATH} SHELL=/bin/bash
+ENV GOLANG_ARCH_amd64=amd64 GOLANG_ARCH_arm=arm GOLANG_ARCH_ppc64le=ppc64le \
+    GOLANG_ARCH=GOLANG_ARCH_${ARCH} GOPATH=/go \
+    PATH=/go/bin:/usr/local/go/bin:${PATH} SHELL=/bin/bash
 
 RUN wget -O - https://storage.googleapis.com/golang/go1.7.4.linux-${!GOLANG_ARCH}.tar.gz | tar -xzf - -C /usr/local && \
     go get github.com/rancher/trash && go get github.com/golang/lint/golint
