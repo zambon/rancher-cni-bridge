@@ -10,7 +10,7 @@ RUN apt-get -q update && \
     rm -rf /var/lib/apt/lists/* && \
     rm -f /bin/sh && ln -s /bin/bash /bin/sh
 
-ENV GOLANG_ARCH_amd64=amd64 GOLANG_ARCH_arm=arm GOLANG_ARCH_ppc64le=ppc64le \
+ENV GOLANG_ARCH_amd64=amd64 GOLANG_ARCH_arm=armv6l GOLANG_ARCH_ppc64le=ppc64le \
     GOLANG_ARCH=GOLANG_ARCH_${ARCH} GOPATH=/go \
     PATH=/go/bin:/usr/local/go/bin:${PATH} SHELL=/bin/bash
 
