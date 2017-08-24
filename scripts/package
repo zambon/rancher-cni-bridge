@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+ARCH=${ARCH:?"ARCH not set"}
+
 source $(dirname $0)/version
 
 ARCH=${ARCH:-"amd64"}
@@ -12,6 +14,9 @@ if [ ! -e bin/rancher-cni-bridge ]; then
     ./scripts/build
 fi
 
+FILE_NAME="rancher-cni-bridge-${VERSION}-${ARCH}.tar.gz"
+
 mkdir -p dist/artifacts
 cd bin
-tar cvzf ../dist/artifacts/rancher-cni-bridge-${VERSION}.tar.gz .
+tar cvzf ../dist/artifacts/$FILE_NAME .
+shasum -a 256 ../dist/artifacts/$FILE_NAME | awk '{print $1}' > ../dist/artifacts/$FILE_NAME.sha256
