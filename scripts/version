@@ -13,8 +13,4 @@ if [[ -z "$VERSION" ]]; then
     else
         VERSION="${COMMIT}${DIRTY}"
     fi
-
-    if [ -z "$ARCH" ]; then
-        ARCH=amd64
-    fi
 fi
